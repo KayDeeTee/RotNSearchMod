@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
+using RhythmRift;
 using Shared;
 using Shared.RiftInput;
 using Shared.TrackData;
@@ -195,11 +196,18 @@ public class SearchModPlugin : BaseUnityPlugin
                 case "s": parameter = PARAMETER.SUBTITLE; break;
                 case "a": parameter = PARAMETER.ARTIST_NAME; break;
                 case "b": parameter = PARAMETER.BPM; break;
+                case "i": parameter = PARAMETER.INTENSITY; break;
+                case "w": parameter = PARAMETER.CATEGORY; break;
             }
 
             compString = param_data;
 
-            if (parameter == PARAMETER.BPM)
+            if (parameter == PARAMETER.CATEGORY)
+            {
+                float.TryParse(new string(compString.Where(c => char.IsDigit(c)).ToArray()), out compFloat);
+            }
+
+            if (parameter == PARAMETER.BPM || parameter == PARAMETER.INTENSITY)
             {
                 int mask = 0;
                 foreach (char c in compString)
@@ -222,6 +230,7 @@ public class SearchModPlugin : BaseUnityPlugin
             SUBTITLE,
             ARTIST_NAME,
             BPM,
+            INTENSITY,
             LENGTH,
             CATEGORY,
         }
@@ -241,7 +250,7 @@ public class SearchModPlugin : BaseUnityPlugin
         public string compString = "";
         public float compFloat = 0.0f;
 
-        public bool CheckMatch(ITrackMetadata track)
+        public bool CheckMatch(ITrackMetadata track, CustomTracksSelectionSceneController track_select)
         {
 
             Logger.LogInfo(String.Format("{0}, {1}", parameter, compString));
@@ -262,6 +271,13 @@ public class SearchModPlugin : BaseUnityPlugin
                     return track.Category == TrackCategory.UgcRemote;
                 case PARAMETER.BPM:
                     return CompValue(track.BeatsPerMinute);
+                case PARAMETER.INTENSITY:
+                    //check actual current diff
+                    if (track.GetDifficulty(track_select._selectedDifficulty) != null) {
+                        return CompValue( track.GetDifficulty(track_select._selectedDifficulty).Intensity );
+                    }
+                    return false;
+                    
                 case PARAMETER.LENGTH:
                     return false;
                     //return CompValue(track.TrackLength);
@@ -337,7 +353,7 @@ public class SearchModPlugin : BaseUnityPlugin
             bool match = true;
             foreach (SearchFilter filter in filters)
             {
-                match &= filter.CheckMatch(__instance._customTrackMetadatas[i]);
+                match &= filter.CheckMatch(__instance._customTrackMetadatas[i], __instance);
                 if (!match) break;
             }
 
