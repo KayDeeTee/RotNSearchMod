@@ -12,4 +12,6 @@ b => bpm
 
 so `s:hello; c:me` searches for charts that have hello in the subtitle text as well as me in the charter text 
 
+and a blank category like searching for just `censored` will match either track or charter name.
+
 bpm takes a slightly different format like `b:>=200` valid options are `'', '=', '<', '<=', '>', and '>='`
