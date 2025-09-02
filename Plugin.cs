@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -181,7 +182,108 @@ public class SearchModPlugin : BaseUnityPlugin
         return true;
     }
 
-    
+
+    public class SearchFilter
+    {
+        public SearchFilter(string param_type, string param_data)
+        {
+            switch (param_type)
+            {
+                case "": parameter = PARAMETER.TRACK_OR_AUTHOR_NAME; break;
+                case "t": parameter = PARAMETER.TRACK_NAME; break;
+                case "c": parameter = PARAMETER.AUTHOR_NAME; break;
+                case "s": parameter = PARAMETER.SUBTITLE; break;
+                case "a": parameter = PARAMETER.ARTIST_NAME; break;
+                case "b": parameter = PARAMETER.BPM; break;
+            }
+
+            compString = param_data;
+
+            if (parameter == PARAMETER.BPM)
+            {
+                int mask = 0;
+                foreach (char c in compString)
+                {
+                    if (c == '=') mask |= 1;
+                    if (c == '>') mask |= 2;
+                    if (c == '<') mask |= 4;
+                }
+                compMode = (COMP_MODE)mask;
+                if (compMode == COMP_MODE.CONTAINS) compMode = COMP_MODE.EQUALS;
+
+                float.TryParse(new string(compString.Where(c => char.IsDigit(c)).ToArray()), out compFloat);
+            }
+        }
+        public enum PARAMETER
+        {
+            TRACK_OR_AUTHOR_NAME,
+            TRACK_NAME,
+            AUTHOR_NAME,
+            SUBTITLE,
+            ARTIST_NAME,
+            BPM,
+            LENGTH,
+            CATEGORY,
+        }
+
+        public enum COMP_MODE
+        {
+            CONTAINS,
+            EQUALS = 1,
+            GREATER_THAN = 2,
+            GREATER_THAN_EQUAL = 3,
+            LESS_THAN = 4,            
+            LESS_THAN_EQUAL = 5,
+        }
+
+        public PARAMETER parameter = PARAMETER.TRACK_OR_AUTHOR_NAME;
+        public COMP_MODE compMode = COMP_MODE.CONTAINS;
+        public string compString = "";
+        public float compFloat = 0.0f;
+
+        public bool CheckMatch(ITrackMetadata track)
+        {
+
+            Logger.LogInfo(String.Format("{0}, {1}", parameter, compString));
+            switch (parameter)
+            {
+                case PARAMETER.TRACK_OR_AUTHOR_NAME:
+                    return track.StageCreatorName.ToLower().Contains(compString.ToLower()) || track.TrackName.ToLower().Contains(compString.ToLower());
+                case PARAMETER.TRACK_NAME:
+                    return track.TrackName.ToLower().Contains(compString.ToLower());
+                case PARAMETER.AUTHOR_NAME:
+                    return track.StageCreatorName.ToLower().Contains(compString.ToLower());
+                case PARAMETER.SUBTITLE:
+                    return track.TrackSubtitle.ToLower().Contains(compString.ToLower());
+                case PARAMETER.ARTIST_NAME:
+                    return track.ArtistName.ToLower().Contains(compString.ToLower());
+                case PARAMETER.CATEGORY:
+                    if (compFloat == 0) return track.Category == TrackCategory.UgcLocal;
+                    return track.Category == TrackCategory.UgcRemote;
+                case PARAMETER.BPM:
+                    return CompValue(track.BeatsPerMinute);
+                case PARAMETER.LENGTH:
+                    return false;
+                    //return CompValue(track.TrackLength);
+            }
+            return false;
+        }
+
+        public bool CompValue(float? v) {
+            if (!v.HasValue) return false;
+            switch (compMode)
+            {
+                case COMP_MODE.EQUALS: return v.Value == compFloat;
+                case COMP_MODE.GREATER_THAN: return v.Value > compFloat;
+                case COMP_MODE.GREATER_THAN_EQUAL: return v.Value >= compFloat;
+                case COMP_MODE.LESS_THAN: return v.Value < compFloat;
+                case COMP_MODE.LESS_THAN_EQUAL: return v.Value <= compFloat;
+            }
+            return false;            
+        }
+
+    }
+
 
     [HarmonyPatch(typeof(CustomTracksSelectionSceneController), "FillInTracksToDisplayForCurrentDifficulty")]
     [HarmonyPrefix]
@@ -189,17 +291,62 @@ public class SearchModPlugin : BaseUnityPlugin
     {
         List<ITrackMetadata> list = new List<ITrackMetadata>();
 
+        string current_word = "";
+        string current_section = "";
+
+        string param_type = "";
+        string param_data = "";
+
+        List<SearchFilter> filters = new List<SearchFilter>();
+
+        foreach (char c in searchString)
+        {
+            current_section += c;
+            if (c == ' ')
+            {
+                current_word = "";
+            }
+            else if (c == ':')
+            {
+                param_type = current_word;
+                current_section = "";
+                current_word = "";
+            }
+            else if (c == ';')
+            {
+                param_data = current_section;
+                current_section = "";
+                current_word = "";
+                //Logger.LogInfo(String.Format("{0}, {1}", param_type, param_data));
+                filters.Add(new SearchFilter(param_type, param_data.Substring(0, param_data.Length - 1)));
+            }
+            else
+            {
+                current_word += c;
+            }
+        }
+        //don't require a trailing ;
+        if (current_section != "") filters.Add(new SearchFilter(param_type, current_section));
+
+        Logger.LogInfo(String.Format("Filters: {0}", filters.Count));
+
         for (int i = 0; i < __instance._customTrackMetadatas.Count; i++)
         {
             if (__instance._customTrackMetadatas[i].GetDifficulty(__instance._selectedDifficulty) == null) continue;
-            bool match = false;
-            match |= __instance._customTrackMetadatas[i].StageCreatorName.ToLower().Contains(searchString.ToLower());
-            match |= __instance._customTrackMetadatas[i].TrackName.ToLower().Contains(searchString.ToLower());
 
-            if (!match) continue;
+            bool match = true;
+            foreach (SearchFilter filter in filters)
+            {
+                match &= filter.CheckMatch(__instance._customTrackMetadatas[i]);
+                if (!match) break;
+            }
 
+            if( match ) list.Add(__instance._customTrackMetadatas[i]);
 
-            list.Add(__instance._customTrackMetadatas[i]);
+            //match |= __instance._customTrackMetadatas[i].StageCreatorName.ToLower().Contains(searchString.ToLower());
+            //match |= __instance._customTrackMetadatas[i].TrackName.ToLower().Contains(searchString.ToLower());
+
+            //if (!match) continue;            
         }
 
         __instance._displayedTrackMetaDatas = list.ToArray();
