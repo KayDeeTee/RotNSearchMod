@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using RhythmRift;
@@ -21,10 +22,14 @@ public class SearchModPlugin : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger;
 
+    public static KeyCode toggleKey = KeyCode.Slash;
+
     public static string searchString = "";
     public static Canvas canvas;
 
     public static TextMeshProUGUI TextObj;
+
+    private ConfigEntry<int> keyConfig;
 
     private void Awake()
     {
@@ -39,6 +44,9 @@ public class SearchModPlugin : BaseUnityPlugin
             return;
         }
 
+        keyConfig = Config.Bind("Keybinds", "ToggleKeyCode", (int)KeyCode.Slash, "Keycode for toggling between searching / not searching");
+
+        toggleKey = (KeyCode)keyConfig.Value;
 
         Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 
@@ -88,7 +96,7 @@ public class SearchModPlugin : BaseUnityPlugin
 
         if (searchString == "")
         {
-            TextObj.text = " Press '/' to toggle search";
+            TextObj.text = String.Format(" Press '{0}' to toggle search", ((char)toggleKey) );
         }
 
         return true;
@@ -108,7 +116,7 @@ public class SearchModPlugin : BaseUnityPlugin
     [HarmonyPrefix]
     public static bool CustomTrackUpdate(CustomTracksSelectionSceneController __instance)
     {
-        if (Input.GetKeyDown(KeyCode.Slash))
+        if (Input.GetKeyDown(toggleKey))
         {
             __instance.InputDisabled = !__instance.InputDisabled;
 
@@ -125,7 +133,7 @@ public class SearchModPlugin : BaseUnityPlugin
         bool refilter = false;
         foreach (char c in Input.inputString)
         {
-            if (c == '/') continue;
+            if (c == ((char)toggleKey)) continue;
             if (c == '\b')
             {
                 if (searchString.Length != 0)
@@ -150,7 +158,7 @@ public class SearchModPlugin : BaseUnityPlugin
 
             if (searchString == "")
             {
-                TextObj.text = " Press '/' to toggle search";
+                TextObj.text = String.Format(" Press '{0}' to toggle search", ((char)toggleKey) );
             }
 
             string levelId = "";
