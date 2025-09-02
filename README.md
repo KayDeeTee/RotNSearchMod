@@ -10,6 +10,10 @@ a => artist name
 
 b => bpm
 
+w => 0 = local files, 1 = workshop files
+
+i => intensity
+
 so `s:hello; c:me` searches for charts that have hello in the subtitle text as well as me in the charter text 
 
 and a blank category like searching for just `censored` will match either track or charter name.
