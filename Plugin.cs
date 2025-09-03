@@ -8,6 +8,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using RhythmRift;
 using Shared;
+using Shared.PlayerData;
 using Shared.RiftInput;
 using Shared.TrackData;
 using Shared.TrackSelection;
@@ -201,21 +202,25 @@ public class SearchModPlugin : BaseUnityPlugin
                 case "": parameter = PARAMETER.TRACK_OR_AUTHOR_NAME; break;
                 case "t": parameter = PARAMETER.TRACK_NAME; break;
                 case "c": parameter = PARAMETER.AUTHOR_NAME; break;
-                case "s": parameter = PARAMETER.SUBTITLE; break;
+                case "S": parameter = PARAMETER.SUBTITLE; break;
                 case "a": parameter = PARAMETER.ARTIST_NAME; break;
                 case "b": parameter = PARAMETER.BPM; break;
                 case "i": parameter = PARAMETER.INTENSITY; break;
                 case "w": parameter = PARAMETER.CATEGORY; break;
+                case "s": parameter = PARAMETER.SCORE; break;
+                case "r": parameter = PARAMETER.RANK; break;
+                case "f": parameter = PARAMETER.FC; break;
+                case "p": parameter = PARAMETER.ATTEMPED; break;
             }
 
             compString = param_data;
 
-            if (parameter == PARAMETER.CATEGORY)
+            if (parameter == PARAMETER.CATEGORY || parameter == PARAMETER.ATTEMPED || parameter == PARAMETER.FC)
             {
                 float.TryParse(new string(compString.Where(c => char.IsDigit(c)).ToArray()), out compFloat);
             }
 
-            if (parameter == PARAMETER.BPM || parameter == PARAMETER.INTENSITY)
+            if (parameter == PARAMETER.BPM || parameter == PARAMETER.INTENSITY || parameter == PARAMETER.SCORE)
             {
                 int mask = 0;
                 foreach (char c in compString)
@@ -241,6 +246,10 @@ public class SearchModPlugin : BaseUnityPlugin
             INTENSITY,
             LENGTH,
             CATEGORY,
+            SCORE,
+            RANK,
+            FC,
+            ATTEMPED,
         }
 
         public enum COMP_MODE
@@ -260,8 +269,6 @@ public class SearchModPlugin : BaseUnityPlugin
 
         public bool CheckMatch(ITrackMetadata track, CustomTracksSelectionSceneController track_select)
         {
-
-            Logger.LogInfo(String.Format("{0}, {1}", parameter, compString));
             switch (parameter)
             {
                 case PARAMETER.TRACK_OR_AUTHOR_NAME:
@@ -285,7 +292,16 @@ public class SearchModPlugin : BaseUnityPlugin
                         return CompValue( track.GetDifficulty(track_select._selectedDifficulty).Intensity );
                     }
                     return false;
-                    
+                case PARAMETER.SCORE:
+                    int highScoreForDifficulty = PlayerDataUtil.GetHighScoreForDifficulty(track.LevelId, track_select._selectedDifficulty);
+                    return CompValue(highScoreForDifficulty);
+                case PARAMETER.RANK:
+                    string c = PlayerDataUtil.GetLetterGradeForDifficulty(track.LevelId, track_select._selectedDifficulty);
+                    return c.Trim().ToLower() == compString.Trim().ToLower();
+                case PARAMETER.ATTEMPED:
+                    return PlayerDataUtil.HasLevelBeenAttempted(track.LevelId);
+                case PARAMETER.FC:
+                    return PlayerDataUtil.GetWasFullClearedByDifficulty(track.LevelId, track_select._selectedDifficulty) == (compFloat == 1.0f);         
                 case PARAMETER.LENGTH:
                     return false;
                     //return CompValue(track.TrackLength);
@@ -352,8 +368,6 @@ public class SearchModPlugin : BaseUnityPlugin
         //don't require a trailing ;
         if (current_section != "") filters.Add(new SearchFilter(param_type, current_section));
 
-        Logger.LogInfo(String.Format("Filters: {0}", filters.Count));
-
         for (int i = 0; i < __instance._customTrackMetadatas.Count; i++)
         {
             if (__instance._customTrackMetadatas[i].GetDifficulty(__instance._selectedDifficulty) == null) continue;
@@ -365,12 +379,7 @@ public class SearchModPlugin : BaseUnityPlugin
                 if (!match) break;
             }
 
-            if( match ) list.Add(__instance._customTrackMetadatas[i]);
-
-            //match |= __instance._customTrackMetadatas[i].StageCreatorName.ToLower().Contains(searchString.ToLower());
-            //match |= __instance._customTrackMetadatas[i].TrackName.ToLower().Contains(searchString.ToLower());
-
-            //if (!match) continue;            
+            if( match ) list.Add(__instance._customTrackMetadatas[i]);         
         }
 
         __instance._displayedTrackMetaDatas = list.ToArray();
