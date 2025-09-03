@@ -20,7 +20,7 @@ r => rank, -, d, c, b, a, s, ss
 
 f => fc, 1 = fc, 0 = no fc
 
-so `s:hello; c:me` searches for charts that have hello in the subtitle text as well as me in the charter text 
+so `S:hello; c:me` searches for charts that have hello in the subtitle text as well as me in the charter text 
 
 and a blank category like searching for just `censored` will match either track or charter name.
 
