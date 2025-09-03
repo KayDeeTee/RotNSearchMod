@@ -4,7 +4,7 @@ t => track name
 
 c => charter name
 
-s => subtitle text
+S => subtitle text
 
 a => artist name
 
@@ -13,6 +13,12 @@ b => bpm
 w => 0 = local files, 1 = workshop files
 
 i => intensity
+
+s => score
+
+r => rank, -, d, c, b, a, s, ss
+
+f => fc, 1 = fc, 0 = no fc
 
 so `s:hello; c:me` searches for charts that have hello in the subtitle text as well as me in the charter text 
 
