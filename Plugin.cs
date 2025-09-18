@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using RhythmRift;
 using Shared;
 using Shared.PlayerData;
-using Shared.RiftInput;
 using Shared.TrackData;
 using Shared.TrackSelection;
 using TMPro;
