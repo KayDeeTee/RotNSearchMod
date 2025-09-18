@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using RhythmRift;
 using Shared;
 using Shared.PlayerData;
-using Shared.RiftInput;
 using Shared.TrackData;
 using Shared.TrackSelection;
-using Shared.UGC.Placeholder;
 using TMPro;
 using UnityEngine;
 
@@ -23,32 +18,26 @@ public class SearchModPlugin : BaseUnityPlugin
 {
     internal static new ManualLogSource Logger;
 
-    public static KeyCode toggleKey = KeyCode.Slash;
-
     public static string searchString = "";
     public static Canvas canvas;
 
     public static TextMeshProUGUI TextObj;
 
-    private ConfigEntry<int> keyConfig;
+    public static KeyCode ToggleKey => (KeyCode)SearchMod.Config.Keybinds.ToggleKeyCode.Value;
 
     private void Awake()
     {
         // Plugin startup logic
         Logger = base.Logger;
-
+        
         Logger.LogInfo(String.Format("BuildVer: {0}", BuildInfoHelper.Instance.BuildId));
-        string[] versions = ["1.7.0", "1.7.1"];
-        if (!versions.Contains(BuildInfoHelper.Instance.BuildId.Split('-')[0]))
-        {
+        string[] versions = ["1.7.0", "1.7.1", "1.8.0"];
+        SearchMod.Config.Initialize(Config);
+        if (!versions.Contains(BuildInfoHelper.Instance.BuildId.Split('-')[0]) && !SearchMod.Config.General.DisableVersionCheck.Value) {
             Logger.LogInfo("Mod built for a previous version of the game, wait for an update or update this yourself.");
             return;
         }
-
-        keyConfig = Config.Bind("Keybinds", "ToggleKeyCode", (int)KeyCode.Slash, "Keycode for toggling between searching / not searching");
-
-        toggleKey = (KeyCode)keyConfig.Value;
-
+        
         Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 
         Harmony.CreateAndPatchAll(typeof(SearchModPlugin));
@@ -97,7 +86,7 @@ public class SearchModPlugin : BaseUnityPlugin
 
         if (searchString == "")
         {
-            TextObj.text = String.Format(" Press '{0}' to toggle search", ((char)toggleKey) );
+            TextObj.text = String.Format(" Press '{0}' to toggle search", ToggleKey );
         }
 
         return true;
@@ -117,7 +106,7 @@ public class SearchModPlugin : BaseUnityPlugin
     [HarmonyPrefix]
     public static bool CustomTrackUpdate(CustomTracksSelectionSceneController __instance)
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (Input.GetKeyDown(ToggleKey))
         {
             __instance.InputDisabled = !__instance.InputDisabled;
 
@@ -134,7 +123,7 @@ public class SearchModPlugin : BaseUnityPlugin
         bool refilter = false;
         foreach (char c in Input.inputString)
         {
-            if (c == ((char)toggleKey)) continue;
+            if (c == ((char)ToggleKey)) continue;
             if (c == '\b')
             {
                 if (searchString.Length != 0)
@@ -159,7 +148,7 @@ public class SearchModPlugin : BaseUnityPlugin
 
             if (searchString == "")
             {
-                TextObj.text = String.Format(" Press '{0}' to toggle search", ((char)toggleKey) );
+                TextObj.text = String.Format(" Press '{0}' to toggle search", ToggleKey );
             }
 
             string levelId = "";
