@@ -31,7 +31,7 @@ public class SearchModPlugin : BaseUnityPlugin
         Logger = base.Logger;
         
         Logger.LogInfo(String.Format("BuildVer: {0}", BuildInfoHelper.Instance.BuildId));
-        string[] versions = ["1.7.0", "1.7.1", "1.8.0"];
+        string[] versions = ["1.7.0", "1.7.1", "1.8.0", "1.10.0"];
         SearchMod.Config.Initialize(Config);
         if (!versions.Contains(BuildInfoHelper.Instance.BuildId.Split('-')[0]) && !SearchMod.Config.General.DisableVersionCheck.Value) {
             Logger.LogInfo("Mod built for a previous version of the game, wait for an update or update this yourself.");
