@@ -25,13 +25,15 @@ public class SearchModPlugin : BaseUnityPlugin
 
     public static KeyCode ToggleKey => (KeyCode)SearchMod.Config.Keybinds.ToggleKeyCode.Value;
 
+    public static bool searchActive = false;
+
     private void Awake()
     {
         // Plugin startup logic
         Logger = base.Logger;
         
         Logger.LogInfo(String.Format("BuildVer: {0}", BuildInfoHelper.Instance.BuildId));
-        string[] versions = ["1.7.0", "1.7.1", "1.8.0", "1.10.0"];
+        string[] versions = ["1.7.0", "1.7.1", "1.8.0", "1.10.0", "1.11.0", "1.11.1"];
         SearchMod.Config.Initialize(Config);
         if (!versions.Contains(BuildInfoHelper.Instance.BuildId.Split('-')[0]) && !SearchMod.Config.General.DisableVersionCheck.Value) {
             Logger.LogInfo("Mod built for a previous version of the game, wait for an update or update this yourself.");
@@ -81,6 +83,8 @@ public class SearchModPlugin : BaseUnityPlugin
         TextObj.outlineWidth = 0.5f;
         TextObj.fontMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, 0.5f);
 
+        searchString = "";
+
         TextObj.text = searchString;
         TextObj.color = Color.gray;
 
@@ -88,6 +92,8 @@ public class SearchModPlugin : BaseUnityPlugin
         {
             TextObj.text = String.Format(" Press '{0}' to toggle search", ToggleKey );
         }
+
+        searchActive = false;
 
         return true;
     }
@@ -106,20 +112,28 @@ public class SearchModPlugin : BaseUnityPlugin
     [HarmonyPrefix]
     public static bool CustomTrackUpdate(CustomTracksSelectionSceneController __instance)
     {
-        if (Input.GetKeyDown(ToggleKey))
-        {
-            __instance.InputDisabled = !__instance.InputDisabled;
-
-            if (__instance.InputDisabled)
+        if( !__instance.InputDisabled ){
+            if (Input.GetKeyDown(ToggleKey))
             {
+                searchActive = true;
+                __instance.InputDisabled = true;
+
                 TextObj.color = Color.white;
             }
-            else
-            {
-                TextObj.color = Color.gray;
+        } else {
+            if( searchActive ){
+                if (Input.GetKeyDown(ToggleKey) )
+                {
+                    searchActive = false;
+                    __instance.InputDisabled = false;
+
+                    TextObj.color = Color.gray;
+                }
             }
+
         }
-        if (!__instance.InputDisabled) return true;
+
+        if (!searchActive) return true;
         bool refilter = false;
         foreach (char c in Input.inputString)
         {
