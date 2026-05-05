@@ -23,6 +23,7 @@ public class SearchModPlugin : RiftPlugin
 
     public static KeyCode ToggleKey => (KeyCode)SearchMod.Config.Keybinds.ToggleSearchBar;
 
+    public static bool searchActive = false;
 
     [HarmonyPatch(typeof(CustomTracksSelectionSceneController))]
     public static class CustomTracksSelectionPatch
@@ -65,6 +66,8 @@ public class SearchModPlugin : RiftPlugin
             TextObj.outlineWidth = 0.5f;
             TextObj.fontMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, 0.5f);
 
+            searchString = "";
+
             TextObj.text = searchString;
             TextObj.color = Color.gray;
 
@@ -72,6 +75,8 @@ public class SearchModPlugin : RiftPlugin
             {
                 TextObj.text = String.Format(" Press '{0}' to toggle search", ToggleKey);
             }
+
+            searchActive = false;
 
             return true;
         }
@@ -90,20 +95,32 @@ public class SearchModPlugin : RiftPlugin
         [HarmonyPrefix]
         public static bool CustomTrackUpdate(CustomTracksSelectionSceneController __instance)
         {
-            if (Input.GetKeyDown(ToggleKey))
+            if (!__instance.InputDisabled)
             {
-                __instance.InputDisabled = !__instance.InputDisabled;
-
-                if (__instance.InputDisabled)
+                if (Input.GetKeyDown(ToggleKey))
                 {
+                    searchActive = true;
+                    __instance.InputDisabled = true;
+
                     TextObj.color = Color.white;
                 }
-                else
-                {
-                    TextObj.color = Color.gray;
-                }
             }
-            if (!__instance.InputDisabled) return true;
+            else
+            {
+                if (searchActive)
+                {
+                    if (Input.GetKeyDown(ToggleKey))
+                    {
+                        searchActive = false;
+                        __instance.InputDisabled = false;
+
+                        TextObj.color = Color.gray;
+                    }
+                }
+
+            }
+
+            if (!searchActive) return true;
             bool refilter = false;
             foreach (char c in Input.inputString)
             {
