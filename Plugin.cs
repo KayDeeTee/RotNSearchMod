@@ -95,29 +95,22 @@ public class SearchModPlugin : RiftPlugin
         [HarmonyPrefix]
         public static bool CustomTrackUpdate(CustomTracksSelectionSceneController __instance)
         {
-            if (!__instance.InputDisabled)
+            if (Input.GetKeyDown(ToggleKey))
             {
-                if (Input.GetKeyDown(ToggleKey))
+                if (!__instance.InputDisabled)
                 {
                     searchActive = true;
                     __instance.InputDisabled = true;
 
                     TextObj.color = Color.white;
                 }
-            }
-            else
-            {
-                if (searchActive)
+                else if (searchActive)
                 {
-                    if (Input.GetKeyDown(ToggleKey))
-                    {
-                        searchActive = false;
-                        __instance.InputDisabled = false;
+                    searchActive = false;
+                    __instance.InputDisabled = false;
 
-                        TextObj.color = Color.gray;
-                    }
+                    TextObj.color = Color.gray;
                 }
-
             }
 
             if (!searchActive) return true;
@@ -215,7 +208,6 @@ public class SearchModPlugin : RiftPlugin
                     param_data = current_section;
                     current_section = "";
                     current_word = "";
-                    //Logger.LogInfo(String.Format("{0}, {1}", param_type, param_data));
                     filters.Add(new SearchFilter(param_type, param_data.Substring(0, param_data.Length - 1)));
                 }
                 else
@@ -228,8 +220,6 @@ public class SearchModPlugin : RiftPlugin
 
             for (int i = 0; i < __instance._customTrackMetadatas.Count; i++)
             {
-                if (__instance._customTrackMetadatas[i].GetDifficulty(__instance._selectedDifficulty) == null) continue;
-
                 bool match = true;
                 foreach (SearchFilter filter in filters)
                 {
@@ -242,6 +232,21 @@ public class SearchModPlugin : RiftPlugin
 
             __instance._displayedTrackMetaDatas = list.ToArray();
 
+            switch (__instance._filterOption)
+            {
+                case TrackFilterOption.UnplayedSongs:
+                    __instance._displayedTrackMetaDatas = __instance._displayedTrackMetaDatas.Where((ITrackMetadata d) => d.GetDifficulty(__instance._selectedDifficulty) != null && PlayerDataUtil.GetAttemptCountForDifficulty(d.LevelId, __instance._selectedDifficulty) <= 0).ToArray();
+                    break;
+                case TrackFilterOption.Favorites:
+                    __instance._displayedTrackMetaDatas = __instance._displayedTrackMetaDatas.Where((ITrackMetadata d) => PlayerDataUtil.IsLevelFavorite(d.LevelId)).ToArray();
+                    break;
+                case TrackFilterOption.CurrentDifficultyAvailable:
+                    __instance._displayedTrackMetaDatas = __instance._displayedTrackMetaDatas.Where((ITrackMetadata d) => d.GetDifficulty(__instance._selectedDifficulty) != null).ToArray();
+                    break;
+                case TrackFilterOption.None:
+                case TrackFilterOption.DLC:
+                    break;
+            }
 
             return false;
         }
