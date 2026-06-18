@@ -112,7 +112,7 @@ public class SearchFilter
             case PARAMETER.ATTEMPED:
                 return PlayerDataUtil.HasLevelBeenAttempted(track.LevelId);
             case PARAMETER.FC:
-                return PlayerDataUtil.GetWasFullClearedByDifficulty(track.LevelId, track_select._selectedDifficulty) == (compFloat == 1.0f);
+                return PlayerDataUtil.GetIsFullComboForDifficulty(track.LevelId, track_select._selectedDifficulty) == (compFloat == 1.0f);
             case PARAMETER.LENGTH:
                 return false;
                 //return CompValue(track.TrackLength);
