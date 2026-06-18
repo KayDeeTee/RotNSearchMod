@@ -1,5 +1,4 @@
-﻿using BepInEx.Configuration;
-using RiftOfTheNecroManager;
+﻿using RiftOfTheNecroManager;
 using UnityEngine;
 
 namespace SearchMod;

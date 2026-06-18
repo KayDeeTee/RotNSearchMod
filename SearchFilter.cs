@@ -45,6 +45,7 @@ public class SearchFilter
             float.TryParse(new string(compString.Where(c => char.IsDigit(c)).ToArray()), out compFloat);
         }
     }
+    
     public enum PARAMETER
     {
         TRACK_OR_AUTHOR_NAME,
@@ -123,15 +124,13 @@ public class SearchFilter
     public bool CompValue(float? v)
     {
         if (!v.HasValue) return false;
-        switch (compMode)
-        {
-            case COMP_MODE.EQUALS: return v.Value == compFloat;
-            case COMP_MODE.GREATER_THAN: return v.Value > compFloat;
-            case COMP_MODE.GREATER_THAN_EQUAL: return v.Value >= compFloat;
-            case COMP_MODE.LESS_THAN: return v.Value < compFloat;
-            case COMP_MODE.LESS_THAN_EQUAL: return v.Value <= compFloat;
-        }
-        return false;
+        return compMode switch {
+            COMP_MODE.EQUALS => v.Value == compFloat,
+            COMP_MODE.GREATER_THAN => v.Value > compFloat,
+            COMP_MODE.GREATER_THAN_EQUAL => v.Value >= compFloat,
+            COMP_MODE.LESS_THAN => v.Value < compFloat,
+            COMP_MODE.LESS_THAN_EQUAL => v.Value <= compFloat,
+            _ => false,
+        };
     }
-
 }

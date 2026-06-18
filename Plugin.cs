@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
-using BepInEx.Logging;
 using HarmonyLib;
 using RiftOfTheNecroManager;
 using Shared.PlayerData;
@@ -142,7 +141,7 @@ public class SearchModPlugin : RiftPlugin
 
                 if (searchString == "")
                 {
-                    TextObj.text = String.Format(" Press '{0}' to toggle search", ToggleKey);
+                    TextObj.text = string.Format(" Press '{0}' to toggle search", ToggleKey);
                 }
 
                 string levelId = "";
