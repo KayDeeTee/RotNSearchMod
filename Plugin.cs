@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace SearchMod;
 
-[BepInPlugin("rotn.katie.utils.searchmod", "SearchMod", "1.0.1")]
+[BepInPlugin("rotn.katie.utils.searchmod", "SearchMod", "1.0.2")]
 public class SearchModPlugin : RiftPlugin
 {
     public static string searchString = "";
